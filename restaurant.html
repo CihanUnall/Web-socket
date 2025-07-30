@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Restoran Sohbet Ekranı</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="chat-container">
+      <h1>Restoran - Müşteri Sohbeti</h1>
+      <h2>Ben: Restoran (ID: restaurantA)</h2>
+      <h3>Müşteri: (ID: customer1)</h3>
+      <div class="messages-box" id="messagesBox"></div>
+      <input type="text" id="messageInput" placeholder="Mesajınızı yazın..." />
+      <button id="sendMessageBtn">Gönder</button>
+    </div>
+
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+    <script type="module" src="script.js"></script>
+    <script>
+      // Global değişkenler tanımla
+      window.userConfig = {
+        userId: "restaurantA",
+        userType: "restaurant",
+        roomId: "customer1_restaurantA", // Müşteri ve restoran için aynı olmalı
+      };
+    </script>
+  </body>
+</html>
