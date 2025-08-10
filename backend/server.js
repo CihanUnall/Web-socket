@@ -24,10 +24,12 @@ app.use(
   cors({
     origin: [
       process.env.FRONTEND_URL,
-      "https://web-socket-lac-nine.vercel.app/",
+      "https://web-socket-lac-nine.vercel.app",
+      "http://localhost:3000",
     ],
   })
 );
+
 app.use(express.json());
 
 // ===== Socket.IO =====
@@ -85,5 +87,5 @@ app.get("/", (req, res) => {
 });
 
 httpServer.listen(PORT, () => {
-  console.log(`🚀 Backend http://localhost:${PORT} adresinde çalışıyor`);
+  console.log(`🚀 Backend port ${PORT} üzerinde çalışıyor`);
 });
