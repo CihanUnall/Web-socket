@@ -1,85 +1,81 @@
-// server.js
 import express from "express";
-import { createServer } from "http"; // HTTP sunucusunu Express ile entegre etmek için
-import { Server } from "socket.io"; // Socket.IO sunucusu
+import { createServer } from "http";
+import { Server } from "socket.io";
 import cors from "cors";
+import mongoose from "mongoose";
+import dotenv from "dotenv";
+import Message from "./models/Message.js";
+
+// Ortam değişkenlerini yükle
+dotenv.config();
 
 const app = express();
-const httpServer = createServer(app); // Socket.IO için HTTP sunucusu oluştur
-const PORT = 5500;
+const httpServer = createServer(app);
+const PORT = process.env.PORT || 5500;
 
-// CORS ayarları: Frontend'in hangi adreslerden bağlanabileceğini belirtiriz
+// ===== MongoDB Bağlantısı =====
+mongoose
+  .connect(process.env.MONGO_URI)
+  .then(() => console.log("✅ MongoDB bağlantısı başarılı"))
+  .catch((err) => console.error("❌ MongoDB bağlantı hatası:", err));
+
+// ===== Middleware =====
+app.use(cors({ origin: [process.env.FRONTEND_URL, "http://localhost:3000"] }));
+app.use(express.json());
+
+// ===== Socket.IO =====
 const io = new Server(httpServer, {
   cors: {
-    origin: ["http://localhost:3000", "http://127.0.0.1:3000"], // Frontend'in çalışacağı portu buraya ekleyin (Live Server varsayılanı)
+    origin: [process.env.FRONTEND_URL, "http://localhost:3000"],
     methods: ["GET", "POST"],
   },
 });
 
-// Middleware'ler
-app.use(cors());
-app.use(express.json());
-
-// Sohbet odalarını ve bağlı kullanıcıları takip etmek için basit bir yapı
-// Gerçek bir uygulamada, bu bilgileri bir veritabanında (MongoDB gibi) tutmanız gerekir.
-const chatSessions = new Map(); // Key: roomId (örn: 'customer1_restaurantA'), Value: { messages: [], participants: {} }
-
-// Socket.IO bağlantısı kurulduğunda
 io.on("connection", (socket) => {
-  console.log(`Yeni bir kullanıcı bağlandı: ${socket.id}`);
+  console.log(`🔌 Yeni kullanıcı bağlandı: ${socket.id}`);
 
-  // Bir sohbet odasına katılma
-  // Bu, müşteri veya restoran ilk kez sohbete başladığında çağrılır.
-  socket.on("join_room", (data) => {
-    const { roomId, userId, userType } = data; // roomId: örn: 'customer1_restaurantA'
-    socket.join(roomId); // Kullanıcıyı belirli bir odaya dahil et
+  socket.on("join_room", async (data) => {
+    const { roomId, userId, userType } = data;
+    socket.join(roomId);
+    console.log(`👤 ${userType} (${userId}) odaya katıldı: ${roomId}`);
 
-    if (!chatSessions.has(roomId)) {
-      chatSessions.set(roomId, { messages: [], participants: {} });
+    try {
+      const messages = await Message.find({ roomId }).sort({ timestamp: 1 });
+      socket.emit("chat_history", messages);
+    } catch (err) {
+      console.error("Mesaj geçmişi yüklenirken hata:", err);
     }
-    const session = chatSessions.get(roomId);
-    session.participants[userId] = socket.id; // Kullanıcının socket ID'sini kaydet
-
-    console.log(`${userType} ${userId} odaya katıldı: ${roomId}`);
-
-    // Odaya katılan herkese bu kullanıcının katıldığını bildir
-    // Bu örnekte, katılınca önceki mesajları gönderiyoruz
-    socket.emit("chat_history", session.messages);
   });
 
-  // Mesaj alma
-  socket.on("send_message", (data) => {
-    const { roomId, senderId, senderType, message } = data; // senderType: 'customer' veya 'restaurant'
-    console.log(
-      `Oda ${roomId} - ${senderType} ${senderId} dedi ki: ${message}`
-    );
+  socket.on("send_message", async (data) => {
+    const { roomId, senderId, senderType, message } = data;
 
-    const session = chatSessions.get(roomId);
-    if (session) {
-      const newMessage = {
-        senderId,
-        senderType,
-        message,
-        timestamp: new Date().toLocaleTimeString(),
-      };
-      session.messages.push(newMessage); // Mesajı kaydet (geçici)
+    const newMessage = new Message({
+      roomId,
+      senderId,
+      senderType,
+      message,
+    });
 
-      // Mesajı o odadaki tüm kullanıcılara gönder
+    try {
+      await newMessage.save();
       io.to(roomId).emit("receive_message", newMessage);
-    } else {
-      console.warn(`Geçersiz oda ID'si: ${roomId}`);
+      console.log(`💬 Mesaj kaydedildi: ${message}`);
+    } catch (err) {
+      console.error("Mesaj kaydedilirken hata:", err);
     }
   });
 
-  // Kullanıcı bağlantısı kesildiğinde
   socket.on("disconnect", () => {
-    console.log(`Bir kullanıcı bağlantısı kesildi: ${socket.id}`);
-    // Gerçek bir uygulamada, burada kullanıcının hangi odadan ayrıldığını bulup güncellemeler yapmanız gerekir.
-    // Örneğin, katılımcılardan socket.id'yi kaldırın.
+    console.log(`❌ Kullanıcı ayrıldı: ${socket.id}`);
   });
 });
 
-// HTTP sunucusunu başlat
+// Basit test endpoint'i
+app.get("/", (req, res) => {
+  res.send("✅ Socket.IO Chat Backend çalışıyor");
+});
+
 httpServer.listen(PORT, () => {
-  console.log(`Backend sunucusu http://localhost:${PORT} adresinde çalışıyor.`);
+  console.log(`🚀 Backend http://localhost:${PORT} adresinde çalışıyor`);
 });
