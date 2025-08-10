@@ -20,13 +20,23 @@ mongoose
   .catch((err) => console.error("❌ MongoDB bağlantı hatası:", err));
 
 // ===== Middleware =====
-app.use(cors({ origin: [process.env.FRONTEND_URL, "http://localhost:3000"] }));
+app.use(
+  cors({
+    origin: [
+      process.env.FRONTEND_URL,
+      "https://web-socket-lac-nine.vercel.app/",
+    ],
+  })
+);
 app.use(express.json());
 
 // ===== Socket.IO =====
 const io = new Server(httpServer, {
   cors: {
-    origin: [process.env.FRONTEND_URL, "http://localhost:3000"],
+    origin: [
+      process.env.FRONTEND_URL,
+      "https://web-socket-lac-nine.vercel.app/",
+    ],
     methods: ["GET", "POST"],
   },
 });
