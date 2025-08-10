@@ -1,4 +1,3 @@
-// script.js
 document.addEventListener("DOMContentLoaded", () => {
   // window.userConfig'ten kullanıcı bilgilerini al (HTML'den geliyor)
   const { userId, userType, roomId } = window.userConfig;
@@ -7,8 +6,11 @@ document.addEventListener("DOMContentLoaded", () => {
   const messageInput = document.getElementById("messageInput");
   const sendMessageBtn = document.getElementById("sendMessageBtn");
 
+  // Backend URL'sini global değişkenden al, yoksa localhost
+  const backendUrl = window.backendUrl || "http://localhost:5500";
+
   // Socket.IO bağlantısı
-  const socket = io("http://localhost:5500"); // Backend sunucusunun adresi
+  const socket = io(backendUrl);
 
   socket.on("connect", () => {
     console.log(`${userType} bağlı: ${socket.id}`);
