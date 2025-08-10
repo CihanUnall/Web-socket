@@ -1,3 +1,4 @@
 # Web-socket -Simple chat program
 
-![Logo](./assets/chatapp.png "Şirket Logosu")
+![Logo](./frontend/public/chatc.png)
+![Logo](./frontend/public/chatr.png)
