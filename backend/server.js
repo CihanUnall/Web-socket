@@ -33,11 +33,9 @@ app.use(express.json());
 // ===== Socket.IO =====
 const io = new Server(httpServer, {
   cors: {
-    origin: [
-      process.env.FRONTEND_URL,
-      "https://web-socket-lac-nine.vercel.app/",
-    ],
+    origin: ["http://localhost:3000", "https://web-socket-lac-nine.vercel.app"],
     methods: ["GET", "POST"],
+    credentials: true,
   },
 });
 
